@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 import mplfinance as mpf
 from io import BytesIO
 
-# Página
-st.set_page_config(page_title="Stock Info Terminal", layout="centered")
+# Configuración de página
+st.set_page_config(page_title="📈 Stock Info Terminal", layout="centered")
 
+# Caching
 @st.cache_data
 def get_stock_info(symbol):
     try:
@@ -22,40 +23,33 @@ def get_stock_history(symbol):
     stock = yf.Ticker(symbol)
     return stock.history(period="5y", auto_adjust=False)
 
+# Gráfica de velas
 def plot_candlestick_chart(history, symbol):
     history.index = pd.to_datetime(history.index)
     style = mpf.make_mpf_style(base_mpf_style='yahoo', rc={'font.size': 10})
     fig, ax = mpf.plot(history, type='candle', style=style, title=f"{symbol} - 5 Year History", volume=True, returnfig=True)
     st.pyplot(fig)
 
+# Línea de precios ajustados
 def plot_adjusted_close_line_chart(history, symbol):
-    adj_col = None
-    for col in history.columns:
-        if col.lower().replace(" ", "") == "adjclose":
-            adj_col = col
-            break
-
+    adj_col = next((col for col in history.columns if col.lower().replace(" ", "") == "adjclose"), None)
     if not adj_col:
         st.warning("⚠️ Adjusted close data not available for this symbol.")
         return
 
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(history.index, history[adj_col], label='Adjusted Close', linewidth=1.8)
-    ax.set_title(f"Precio histórico de cierre ajustado - {symbol} (2019–2024)", fontsize=14)
+    ax.plot(history.index, history[adj_col], color="#3366cc", linewidth=2.2)
+    ax.set_title(f"Precio histórico de cierre ajustado - {symbol} (2019–2024)", fontsize=15, pad=15)
     ax.set_xlabel("Fecha", fontsize=12)
     ax.set_ylabel("Precio (USD)", fontsize=12)
-    ax.grid(True)
+    ax.grid(True, linestyle='--', alpha=0.5)
     plt.xticks(rotation=45)
     plt.tight_layout()
     st.pyplot(fig)
 
+# Cálculo CAGR
 def calculate_cagr(history, years):
-    adj_col = None
-    for col in history.columns:
-        if col.lower().replace(" ", "") == "adjclose":
-            adj_col = col
-            break
-
+    adj_col = next((col for col in history.columns if col.lower().replace(" ", "") == "adjclose"), None)
     if not adj_col or len(history) == 0:
         return None
 
@@ -73,13 +67,9 @@ def calculate_cagr(history, years):
             cagr_results[f"{yr}Y"] = "N/A"
     return cagr_results
 
+# Cálculo de riesgo anualizado
 def calculate_annual_volatility(history):
-    adj_col = None
-    for col in history.columns:
-        if col.lower().replace(" ", "") == "adjclose":
-            adj_col = col
-            break
-
+    adj_col = next((col for col in history.columns if col.lower().replace(" ", "") == "adjclose"), None)
     if not adj_col or len(history) < 2:
         return None
 
@@ -88,10 +78,12 @@ def calculate_annual_volatility(history):
     annual_vol = daily_vol * np.sqrt(252)
     return round(annual_vol * 100, 2)
 
+# Exportar CSV
 def export_csv(data):
     csv = data.to_csv(index=False).encode('utf-8')
     st.download_button(label="📥 Download CSV", data=csv, file_name="company_data.csv", mime="text/csv")
 
+# Exportar PDF
 def export_pdf(info):
     from fpdf import FPDF
     pdf = FPDF()
@@ -100,7 +92,6 @@ def export_pdf(info):
 
     pdf.cell(200, 10, txt="Stock Information", ln=True, align='C')
     pdf.ln(10)
-
     for key, value in info.items():
         try:
             pdf.cell(200, 10, txt=f"{key}: {value}", ln=True, align='L')
@@ -108,15 +99,10 @@ def export_pdf(info):
             continue
 
     pdf_bytes = pdf.output(dest='S').encode('latin1')
-    st.download_button(
-        label="📥 Download PDF",
-        data=pdf_bytes,
-        file_name="company_data.pdf",
-        mime="application/pdf"
-    )
+    st.download_button(label="📥 Download PDF", data=pdf_bytes, file_name="company_data.pdf", mime="application/pdf")
 
-# Interfaz
-st.title("📈 Stock Info Terminal with Charts, Returns & Risk")
+# Interfaz principal
+st.title("📊 Stock Info Terminal")
 
 query = st.text_input("🔍 Enter stock symbol (e.g. AAPL, MSFT, TSLA)", "").upper()
 
@@ -124,50 +110,53 @@ if query:
     stock_info = get_stock_info(query)
 
     if stock_info and "longName" in stock_info:
-        st.subheader(stock_info["longName"])
+        st.markdown(f"## 🏢 {stock_info['longName']}")
 
-        description = stock_info.get("longBusinessSummary", "No description available.")
-        st.markdown("**📘 Company Description:**")
-        st.write(description)
+        st.markdown("### 📘 Company Description")
+        st.write(stock_info.get("longBusinessSummary", "No description available."))
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Sector", stock_info.get("sector", "N/A"))
-            st.metric("Industry", stock_info.get("industry", "N/A"))
-            st.metric("Market Cap", f"${stock_info.get('marketCap', 'N/A'):,}")
-        with col2:
-            st.metric("Current Price", f"${stock_info.get('currentPrice', 'N/A')}")
-            st.metric("52W Low", f"${stock_info.get('fiftyTwoWeekLow', 'N/A')}")
-            st.metric("52W High", f"${stock_info.get('fiftyTwoWeekHigh', 'N/A')}")
+        with st.container():
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Sector", stock_info.get("sector", "N/A"))
+                st.metric("Industry", stock_info.get("industry", "N/A"))
+                st.metric("Market Cap", f"${stock_info.get('marketCap', 'N/A'):,}")
+            with col2:
+                st.metric("Current Price", f"${stock_info.get('currentPrice', 'N/A')}")
+                st.metric("52W Low", f"${stock_info.get('fiftyTwoWeekLow', 'N/A')}")
+                st.metric("52W High", f"${stock_info.get('fiftyTwoWeekHigh', 'N/A')}")
 
         history = get_stock_history(query)
         if not history.empty:
-            st.subheader("📊 Candlestick Chart")
-            st.markdown("This chart shows 5 years of historical price movements using candlesticks.")
+            st.markdown("---")
+            st.markdown("### 🕯️ Candlestick Chart")
+            st.caption("This chart shows 5 years of historical price movements using candlesticks.")
             plot_candlestick_chart(history, query)
 
-            st.subheader("📈 Adjusted Close Price History (Line Chart)")
-            st.markdown("Line chart of the adjusted closing price over the last 5 years.")
+            st.markdown("### 📈 Adjusted Close Line Chart")
+            st.caption("Line chart of the adjusted closing price over the last 5 years.")
             plot_adjusted_close_line_chart(history, query)
 
-            st.subheader("📉 Annualized Returns (CAGR)")
-            st.markdown("This calculation considers the price at the beginning and end of the period to determine the annualized return.")
+            st.markdown("### 📉 Annualized Returns (CAGR)")
+            st.caption("This calculation considers the price at the beginning and end of the period to determine the annualized return.")
             cagr_data = calculate_cagr(history, [1, 3, 5])
             if cagr_data:
                 cagr_df = pd.DataFrame(list(cagr_data.items()), columns=["Period", "Annualized Return (%)"])
-                st.table(cagr_df)
+                st.dataframe(cagr_df.style.format({"Annualized Return (%)": "{:.2f}"}), use_container_width=True)
                 st.markdown("🧠 **The annualized return was calculated using the CAGR formula.**")
 
-            st.subheader("⚠️ Annual Risk (Volatility)")
-            st.markdown("Volatility is calculated from the standard deviation of daily returns and annualized by multiplying by √252.")
+            st.markdown("### ⚠️ Annual Risk (Volatility)")
+            st.caption("Volatility is calculated from the standard deviation of daily returns and annualized by multiplying by √252.")
             annual_vol = calculate_annual_volatility(history)
             if annual_vol is not None:
                 st.metric("Annual Volatility", f"{annual_vol}%")
                 st.markdown("🧠 **This value represents the asset's historical annual volatility, measured by the standard deviation of daily returns.**")
 
-        st.subheader("📂 Export Data")
+        st.markdown("---")
+        st.markdown("### 📂 Export Data")
         data_to_export = pd.DataFrame.from_dict(stock_info, orient="index", columns=["Value"]).reset_index()
         export_csv(data_to_export)
         export_pdf(stock_info)
+
     else:
         st.error("❌ Incorrect symbol, please try again.")
