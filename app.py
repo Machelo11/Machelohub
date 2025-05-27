@@ -11,10 +11,10 @@ st.title("ASESOR INMOBILIARIO ZARAGOZA")
 st.subheader("Bienvenido a tu plataforma de confianza para encontrar propiedades en Zapopan")
 
 # Intentar conectar con la base de datos
-DB_PATH = "propiedades.db"
+DB_PATH = "propiedadesmgz.db"
 
 if not os.path.exists(DB_PATH):
-    st.error("❌ No se encontró el archivo 'propiedades.db' en la carpeta del proyecto.")
+    st.error("❌ No se encontró el archivo 'propiedadesmgz.db' en la carpeta del proyecto.")
 else:
     try:
         conn = sqlite3.connect(DB_PATH)
