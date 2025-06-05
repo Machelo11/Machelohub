@@ -5,13 +5,14 @@ import os
 from datetime import datetime, date
 import numpy as np
 
+# Configuración general
 st.set_page_config(page_title="Asesor Inmobiliario Zaragoza", layout="centered")
 st.title("ASESOR INMOBILIARIO ZARAGOZA")
 st.subheader("Bienvenido a tu plataforma de confianza para encontrar propiedades en Zapopan")
 
 DB_PATH = "propiedadesmgz.db"
 
-# Funciones
+# Funciones auxiliares
 def redondear_precios(valor, arriba=True):
     base = 50000
     return int(np.ceil(valor / base) * base) if arriba else int(np.floor(valor / base) * base)
@@ -30,11 +31,21 @@ def calcular_pago_mensual(precio, enganche_pct, tasa_anual, plazo_anios):
     return pago
 
 def simulador_infonavit(salario_mensual):
-    credito_estimado = salario_mensual * 25
+    credito_estimado = salario_mensual * 25  # ejemplo: 25 veces salario
     pago_estimado = calcular_pago_mensual(credito_estimado, 0, 9.0, 20)
     return credito_estimado, pago_estimado
 
-# Conexión a base de datos
+# Simulamos coordenadas de propiedades
+data_mapa = {
+    "tipo": ["Casa", "Departamento", "Terreno"],
+    "lat": [20.6843, 20.6781, 20.6932],
+    "lon": [-103.3920, -103.3673, -103.3815],
+    "precio": [2500000, 1800000, 1200000],
+    "ubicacion": ["Zapopan Centro", "Valle Real", "Ciudad Granja"]
+}
+df_mapa = pd.DataFrame(data_mapa)
+
+# Verificación DB
 if not os.path.exists(DB_PATH):
     st.error("❌ No se encontró el archivo 'propiedadesmgz.db'.")
 else:
@@ -42,6 +53,7 @@ else:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
+        # Crear tabla de citas si no existe
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS citas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,11 +158,7 @@ else:
 
             elif menu == "Mapa de Propiedades":
                 st.markdown("## 🗺️ Mapa de Propiedades")
-                if 'lat' in df.columns and 'lon' in df.columns:
-                    df_mapa_real = df[['lat', 'lon']].rename(columns={'lat': 'latitude', 'lon': 'longitude'})
-                    st.map(df_mapa_real)
-                else:
-                    st.warning("❗Tu base de datos no tiene columnas 'lat' y 'lon'. No se puede generar el mapa.")
+                st.map(df_mapa.rename(columns={'lat': 'latitude', 'lon': 'longitude'}))
 
             elif menu == "Consejos":
                 st.markdown("## 📘 Consejos para Comprar Propiedad")
