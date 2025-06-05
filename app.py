@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import os
+from datetime import datetime, date
 
 # Configuración de la página
 st.set_page_config(page_title="Asesor Inmobiliario Zaragoza", layout="centered")
@@ -30,7 +31,7 @@ else:
             df = pd.read_sql_query("SELECT * FROM propiedades", conn)
 
             # Barra lateral
-            menu = st.sidebar.radio("Navegación", ["Inicio", "Sobre mí", "Contáctame", "Propiedades"])
+            menu = st.sidebar.radio("Navegación", ["Inicio", "Sobre mí", "Contáctame", "Propiedades", "Agendar Cita"])
 
             if menu == "Inicio":
                 st.markdown("""
@@ -79,6 +80,24 @@ else:
                     df_filtrado = df_filtrado[df_filtrado["colonia"] == colonia]
 
                 st.dataframe(df_filtrado.reset_index(drop=True))
+
+            elif menu == "Agendar Cita":
+                st.markdown("## 📅 Agenda una Cita")
+
+                with st.form("form_cita"):
+                    nombre = st.text_input("Nombre completo")
+                    telefono = st.text_input("Número de teléfono")
+                    busqueda = st.text_area("¿Qué tipo de propiedad estás buscando?")
+                    fecha = st.date_input("Selecciona una fecha", min_value=date.today())
+                    horario = st.selectbox("Selecciona un horario", [
+                        "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM",
+                        "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"
+                    ])
+                    enviar = st.form_submit_button("Agendar Cita")
+
+                if enviar:
+                    st.success(f"✅ Gracias {nombre}, tu cita ha sido agendada para el {fecha.strftime('%d/%m/%Y')} a las {horario}.")
+                    st.info("Nos pondremos en contacto contigo al número proporcionado.")
 
         conn.close()
 
