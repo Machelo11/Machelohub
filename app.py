@@ -12,10 +12,10 @@ st.set_page_config(page_title="Asesor Inmobiliario Zaragoza", layout="centered")
 st.title("ASESOR INMOBILIARIO ZARAGOZA")
 st.subheader("Bienvenido a tu plataforma de confianza para encontrar propiedades en Zapopan")
 
-# Ruta de la base de datos
+# Ruta base de datos
 DB_PATH = "propiedadesmgz.db"
 
-# Funciones para redondear precios y metros
+# Funciones auxiliares
 def redondear_precios(valor, arriba=True):
     base = 50000
     return int(np.ceil(valor / base) * base) if arriba else int(np.floor(valor / base) * base)
@@ -24,8 +24,18 @@ def redondear_metros(valor, arriba=True):
     base = 10
     return int(np.ceil(valor / base) * base) if arriba else int(np.floor(valor / base) * base)
 
+def calcular_pago_mensual(precio, enganche_pct, tasa_anual, plazo_anios):
+    prestamo = precio * (1 - enganche_pct / 100)
+    tasa_mensual = tasa_anual / 100 / 12
+    n_meses = plazo_anios * 12
+    if tasa_mensual == 0:
+        return prestamo / n_meses
+    pago = prestamo * tasa_mensual * (1 + tasa_mensual) ** n_meses / ((1 + tasa_mensual) ** n_meses - 1)
+    return pago
+
+# Verificación y conexión
 if not os.path.exists(DB_PATH):
-    st.error("❌ No se encontró el archivo 'propiedadesmgz.db' en la carpeta del proyecto.")
+    st.error("❌ No se encontró el archivo 'propiedadesmgz.db'.")
 else:
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -44,7 +54,7 @@ else:
             );
         """)
 
-        # Verificar que la tabla 'propiedades' exista
+        # Verificar existencia de propiedades
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='propiedades';")
         table_exists = cursor.fetchone()
 
@@ -53,34 +63,23 @@ else:
         else:
             df = pd.read_sql_query("SELECT * FROM propiedades", conn)
 
-            menu = st.sidebar.radio("Navegación", ["Inicio", "Sobre mí", "Contáctame", "Propiedades", "Agendar Cita"])
+            menu = st.sidebar.radio("Navegación", [
+                "Inicio", "Sobre mí", "Contáctame", "Propiedades", "Agendar Cita",
+                "Calculadora Hipotecaria", "Consejos"
+            ])
 
             if menu == "Inicio":
-                st.markdown("""
-                ## 🏠 Encuentra tu nuevo hogar
-                Esta plataforma está diseñada para ayudarte a encontrar propiedades en venta en Zapopan
-                de forma rápida, sencilla y confiable.
-                """)
+                st.markdown("## 🏠 Encuentra tu nuevo hogar\nEsta plataforma te ayuda a encontrar propiedades en Zapopan de forma rápida y confiable.")
 
             elif menu == "Sobre mí":
-                st.markdown("""
-                ## 🤝 Acerca de mí
-                Mi nombre es Miguel Gonzalez Zaragoza y soy un asesor inmobiliario con más de 2 años de experiencia.
-                Me especializo en la zona de Zapopan y mi objetivo es ayudarte a encontrar la propiedad ideal.
-                """)
+                st.markdown("## 🤝 Acerca de mí\nSoy Miguel Gonzalez Zaragoza, asesor inmobiliario especializado en Zapopan con más de 2 años de experiencia.")
 
             elif menu == "Contáctame":
-                st.markdown("""
-                ## 📢 Contáctame
-                - 📧 **Correo:** miguel.zaragoza1211@gmail.com 
-                - 📞 **Teléfono:** +52 33 1309 6544  
-                - 👤 **Instagram:** @miguelgzr_
-                """)
+                st.markdown("## 📢 Contáctame\n- 📧 **Correo:** miguel.zaragoza1211@gmail.com\n- 📞 **Teléfono:** +52 33 1309 6544\n- 👤 **Instagram:** @miguelgzr_")
 
             elif menu == "Propiedades":
                 st.markdown("## 🏡 Propiedades en Venta")
 
-                # Filtros redondeados
                 precio_min = redondear_precios(df.precio.min(), arriba=False)
                 precio_max = redondear_precios(df.precio.max(), arriba=True)
                 metros_min = redondear_metros(df.metros_cuadrados.min(), arriba=False)
@@ -89,13 +88,12 @@ else:
                 tipo = st.selectbox("Tipo de propiedad", ["Todos"] + df["tipo"].unique().tolist())
                 ubicacion = st.selectbox("Ubicación", ["Todas"] + df["ubicacion"].unique().tolist())
                 colonia = st.selectbox("Colonia", ["Todas"] + sorted(df["colonia"].unique().tolist()))
-                habitaciones = st.slider("Número de habitaciones", int(df.habitaciones.min()), int(df.habitaciones.max()), (int(df.habitaciones.min()), int(df.habitaciones.max())))
+                habitaciones = st.slider("Número de habitaciones", int(df.habitaciones.min()), int(df.habitaciones.max()))
                 precio = st.slider("Precio (MXN)", precio_min, precio_max, (precio_min, precio_max), step=50000)
                 metros = st.slider("Metros cuadrados", metros_min, metros_max, (metros_min, metros_max), step=10)
 
-                # Filtro aplicado
                 df_filtrado = df[
-                    (df["habitaciones"] >= habitaciones[0]) & (df["habitaciones"] <= habitaciones[1]) &
+                    (df["habitaciones"] >= habitaciones) &
                     (df["precio"] >= precio[0]) & (df["precio"] <= precio[1]) &
                     (df["metros_cuadrados"] >= metros[0]) & (df["metros_cuadrados"] <= metros[1])
                 ]
@@ -110,7 +108,6 @@ else:
 
             elif menu == "Agendar Cita":
                 st.markdown("## 📅 Agenda una Cita")
-
                 with st.form("form_cita"):
                     nombre = st.text_input("Nombre completo")
                     telefono = st.text_input("Número de teléfono")
@@ -128,12 +125,30 @@ else:
                         VALUES (?, ?, ?, ?, ?, ?)
                     """, (nombre, telefono, busqueda, str(fecha), horario, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                     conn.commit()
-
                     st.success(f"✅ Gracias {nombre}, tu cita ha sido agendada para el {fecha.strftime('%d/%m/%Y')} a las {horario}.")
-                    st.info("Nos pondremos en contacto contigo al número proporcionado.")
+
+            elif menu == "Calculadora Hipotecaria":
+                st.markdown("## 🧮 Calculadora Hipotecaria")
+                precio = st.number_input("Precio de la propiedad (MXN)", min_value=100000, step=50000)
+                enganche = st.slider("Enganche (%)", 0, 100, 20)
+                tasa = st.slider("Tasa de interés anual (%)", 0.0, 20.0, 10.0)
+                plazo = st.slider("Plazo (años)", 5, 30, 20)
+                if st.button("Calcular pago mensual"):
+                    pago = calcular_pago_mensual(precio, enganche, tasa, plazo)
+                    st.success(f"💰 Tu pago mensual estimado es: ${pago:,.2f} MXN")
+
+            elif menu == "Consejos":
+                st.markdown("## 📘 Consejos para Comprar Propiedad")
+                st.markdown("""
+                - 🔍 **Define tu presupuesto:** Considera enganche, mensualidades y gastos notariales.
+                - 🏦 **Consulta con tu banco:** Revisa tu historial crediticio y opciones de crédito.
+                - 📍 **Ubicación es clave:** Escoge zonas seguras, con servicios y plusvalía.
+                - 📜 **Verifica documentos:** Escrituras, libertad de gravamen y pagos al corriente.
+                - 🕵️ **Visita varias propiedades:** No te quedes con la primera opción.
+                - 🤝 **Confía en un asesor:** Te orientará y te ayudará a negociar mejor.
+                """)
 
         conn.close()
 
     except Exception as e:
         st.error(f"⚠️ Error al acceder a la base de datos: {e}")
-        
