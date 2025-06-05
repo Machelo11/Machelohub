@@ -5,14 +5,11 @@ import os
 from datetime import datetime, date
 import numpy as np
 
-# Configuración de la página
+# Configuración general
 st.set_page_config(page_title="Asesor Inmobiliario Zaragoza", layout="centered")
-
-# Título y bienvenida
 st.title("ASESOR INMOBILIARIO ZARAGOZA")
 st.subheader("Bienvenido a tu plataforma de confianza para encontrar propiedades en Zapopan")
 
-# Ruta base de datos
 DB_PATH = "propiedadesmgz.db"
 
 # Funciones auxiliares
@@ -33,7 +30,22 @@ def calcular_pago_mensual(precio, enganche_pct, tasa_anual, plazo_anios):
     pago = prestamo * tasa_mensual * (1 + tasa_mensual) ** n_meses / ((1 + tasa_mensual) ** n_meses - 1)
     return pago
 
-# Verificación y conexión
+def simulador_infonavit(salario_mensual):
+    credito_estimado = salario_mensual * 25  # ejemplo: 25 veces salario
+    pago_estimado = calcular_pago_mensual(credito_estimado, 0, 9.0, 20)
+    return credito_estimado, pago_estimado
+
+# Simulamos coordenadas de propiedades
+data_mapa = {
+    "tipo": ["Casa", "Departamento", "Terreno"],
+    "lat": [20.6843, 20.6781, 20.6932],
+    "lon": [-103.3920, -103.3673, -103.3815],
+    "precio": [2500000, 1800000, 1200000],
+    "ubicacion": ["Zapopan Centro", "Valle Real", "Ciudad Granja"]
+}
+df_mapa = pd.DataFrame(data_mapa)
+
+# Verificación DB
 if not os.path.exists(DB_PATH):
     st.error("❌ No se encontró el archivo 'propiedadesmgz.db'.")
 else:
@@ -41,7 +53,7 @@ else:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # Crear tabla citas si no existe
+        # Crear tabla de citas si no existe
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS citas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,7 +66,6 @@ else:
             );
         """)
 
-        # Verificar existencia de propiedades
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='propiedades';")
         table_exists = cursor.fetchone()
 
@@ -65,14 +76,14 @@ else:
 
             menu = st.sidebar.radio("Navegación", [
                 "Inicio", "Sobre mí", "Contáctame", "Propiedades", "Agendar Cita",
-                "Calculadora Hipotecaria", "Consejos"
+                "Calculadora Hipotecaria", "Simulador Infonavit", "Mapa de Propiedades", "Consejos"
             ])
 
             if menu == "Inicio":
-                st.markdown("## 🏠 Encuentra tu nuevo hogar\nEsta plataforma te ayuda a encontrar propiedades en Zapopan de forma rápida y confiable.")
+                st.markdown("## 🏠 Encuentra tu nuevo hogar")
 
             elif menu == "Sobre mí":
-                st.markdown("## 🤝 Acerca de mí\nSoy Miguel Gonzalez Zaragoza, asesor inmobiliario especializado en Zapopan con más de 2 años de experiencia.")
+                st.markdown("## 🤝 Acerca de mí\nSoy Miguel Gonzalez Zaragoza, asesor inmobiliario especializado en Zapopan.")
 
             elif menu == "Contáctame":
                 st.markdown("## 📢 Contáctame\n- 📧 **Correo:** miguel.zaragoza1211@gmail.com\n- 📞 **Teléfono:** +52 33 1309 6544\n- 👤 **Instagram:** @miguelgzr_")
@@ -137,15 +148,27 @@ else:
                     pago = calcular_pago_mensual(precio, enganche, tasa, plazo)
                     st.success(f"💰 Tu pago mensual estimado es: ${pago:,.2f} MXN")
 
+            elif menu == "Simulador Infonavit":
+                st.markdown("## 🏦 Simulador Infonavit")
+                salario = st.number_input("Tu salario mensual (MXN)", min_value=5000, step=1000)
+                if st.button("Simular Crédito"):
+                    credito, pago = simulador_infonavit(salario)
+                    st.info(f"💸 Crédito estimado: ${credito:,.0f} MXN")
+                    st.success(f"📆 Pago mensual estimado: ${pago:,.2f} MXN a 20 años")
+
+            elif menu == "Mapa de Propiedades":
+                st.markdown("## 🗺️ Mapa de Propiedades")
+                st.map(df_mapa.rename(columns={'lat': 'latitude', 'lon': 'longitude'}))
+
             elif menu == "Consejos":
                 st.markdown("## 📘 Consejos para Comprar Propiedad")
                 st.markdown("""
-                - 🔍 **Define tu presupuesto:** Considera enganche, mensualidades y gastos notariales.
-                - 🏦 **Consulta con tu banco:** Revisa tu historial crediticio y opciones de crédito.
-                - 📍 **Ubicación es clave:** Escoge zonas seguras, con servicios y plusvalía.
-                - 📜 **Verifica documentos:** Escrituras, libertad de gravamen y pagos al corriente.
-                - 🕵️ **Visita varias propiedades:** No te quedes con la primera opción.
-                - 🤝 **Confía en un asesor:** Te orientará y te ayudará a negociar mejor.
+                - 🔍 **Define tu presupuesto.**
+                - 🏦 **Consulta con tu banco o Infonavit.**
+                - 📍 **Elige zonas con buena plusvalía.**
+                - 📜 **Verifica documentos legales.**
+                - 🕵️ **Visita varias opciones.**
+                - 🤝 **Apóyate en un asesor confiable.**
                 """)
 
         conn.close()
