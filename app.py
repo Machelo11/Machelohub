@@ -118,7 +118,7 @@ else:
                 st.dataframe(df_filtrado.reset_index(drop=True))
 
             elif menu == "Agendar Cita":
-                st.markdown("## 🗕️ Agenda una Cita")
+                st.markdown("## 📅 Agenda una Cita")
                 with st.form("form_cita"):
                     nombre = st.text_input("Nombre completo")
                     telefono = st.text_input("Número de teléfono")
@@ -139,13 +139,13 @@ else:
                     st.balloons()
                     st.success(f"""
                         🎉 ¡Gracias por agendar tu cita, {nombre}!  
-                        🗓️ Te esperamos el **{fecha.strftime('%d/%m/%Y')}** a las **{horario}**.  
+                        📅 Te esperamos el **{fecha.strftime('%d/%m/%Y')}** a las **{horario}**.  
                         📍 Estamos emocionados por ayudarte a encontrar tu próximo hogar.  
                         ¡Nos vemos pronto!
                     """)
 
             elif menu == "Calculadora Hipotecaria":
-                st.markdown("## 🧲 Calculadora Hipotecaria")
+                st.markdown("## 🧮 Calculadora Hipotecaria")
                 precio = st.number_input("Precio de la propiedad (MXN)", min_value=100000, step=50000)
                 enganche = st.slider("Enganche (%)", 0, 100, 20)
                 tasa = st.slider("Tasa de interés anual (%)", 0.0, 20.0, 10.0)
@@ -163,7 +163,7 @@ else:
                     st.success(f"📆 Pago mensual estimado: ${pago:,.2f} MXN a 20 años")
 
             elif menu == "Mapa de Propiedades":
-                st.markdown("## 🗌 Mapa de Propiedades")
+                st.markdown("## 🗺️ Mapa de Propiedades")
                 st.map(df_mapa.rename(columns={'lat': 'latitude', 'lon': 'longitude'}))
 
             elif menu == "Consejos":
@@ -179,23 +179,26 @@ else:
 
             elif menu == "Plusvalía":
                 st.markdown("## 📈 Consulta de Plusvalía")
-                if not df.empty:
-                    propiedad = st.selectbox("Selecciona una propiedad", df["direccion"])
-                    plusvalia = {
-                        "Zapopan Centro": 0.12,
-                        "Valle Real": 0.15,
-                        "Ciudad Granja": 0.10
-                    }
-                    zona = df[df["direccion"] == propiedad]["ubicacion"].values[0]
-                    tasa = plusvalia.get(zona, 0.08)
-                    precio_actual = df[df["direccion"] == propiedad]["precio"].values[0]
-                    estimacion = precio_actual * (1 + tasa)
+                try:
+                    if 'direccion' in df.columns:
+                        propiedad = st.selectbox("Selecciona una propiedad", df["direccion"])
+                        plusvalia = {
+                            "Zapopan Centro": 0.12,
+                            "Valle Real": 0.15,
+                            "Ciudad Granja": 0.10
+                        }
+                        zona = df[df["direccion"] == propiedad]["ubicacion"].values[0]
+                        tasa = plusvalia.get(zona, 0.08)
+                        precio_actual = df[df["direccion"] == propiedad]["precio"].values[0]
+                        estimacion = precio_actual * (1 + tasa)
 
-                    st.info(f"🏠 Zona: **{zona}**")
-                    st.success(f"📉 Estimación de plusvalía anual: **{tasa*100:.1f}%**")
-                    st.markdown(f"📊 Precio proyectado para el próximo año: **${estimacion:,.2f} MXN**")
-                else:
-                    st.warning("No hay propiedades cargadas para mostrar plusvalía.")
+                        st.info(f"🏘️ Zona: **{zona}**")
+                        st.success(f"💹 Estimación de plusvalía anual: **{tasa*100:.1f}%**")
+                        st.markdown(f"📊 Precio proyectado para el próximo año: **${estimacion:,.2f} MXN**")
+                    else:
+                        st.warning("La columna 'direccion' no existe en la base de datos. Asegúrate de tenerla creada.")
+                except Exception as e:
+                    st.error(f"⚠️ Error al acceder a la base de datos: {e}")
 
         conn.close()
 
