@@ -42,17 +42,16 @@ else:
             elif menu == "Sobre mí":
                 st.markdown("""
                 ## 🤝 Acerca de mí
-                Mi nombre es [Tu Nombre] y soy un asesor inmobiliario con más de 10 años de experiencia.
+                Mi nombre es Miguel Gonzalez Zaragoza y soy un asesor inmobiliario con más de 2 años de experiencia.
                 Me especializo en la zona de Zapopan y mi objetivo es ayudarte a encontrar la propiedad ideal.
                 """)
 
             elif menu == "Contáctame":
                 st.markdown("""
                 ## 📢 Contáctame
-                - 📧 **Correo:** tuemail@ejemplo.com  
-                - 📞 **Teléfono:** +52 33 1234 5678  
-                - 👤 **Instagram:** [@tuusuario](https://instagram.com/tuusuario)  
-                - 📲 **Facebook:** [Asesor Inmobiliario Zaragoza](https://facebook.com/zaragozainmuebles)
+                - 📧 **Correo:** miguel.zaragoza1211@gmail.com 
+                - 📞 **Teléfono:** +52 33 1309 6544  
+                - 👤 **Instagram:** @miguelgzr_
                 """)
 
             elif menu == "Propiedades":
