@@ -76,7 +76,7 @@ else:
 
             menu = st.sidebar.radio("Navegación", [
                 "Inicio", "Sobre mí", "Contáctame", "Propiedades", "Agendar Cita",
-                "Calculadora Hipotecaria", "Simulador Infonavit", "Mapa de Propiedades", "Consejos", "Plusvalía"
+                "Calculadora Hipotecaria", "Simulador Infonavit", "Mapa de Propiedades", "Consejos" 
             ])
 
             if menu == "Inicio":
